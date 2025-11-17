@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+env/
+
+# VS Code
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Environment/Cache
+*.cache/
+.cache/
+*.egg-info/
+
+# Node (if using v0 / agents)
+node_modules/
+
+# Models (large files)
+models/
+weights/
+checkpoints/
+project_resources/
+
+# OS files
+.DS_Store
