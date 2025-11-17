@@ -89,7 +89,7 @@ Research Brief (Markdown + Charts)
 ### Step 1: Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/mardani72/AI-Financial-Research-Concierge-Agent.git
 cd my_capstone_project
 ```
 
