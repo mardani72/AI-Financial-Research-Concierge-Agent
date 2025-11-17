@@ -1,6 +1,6 @@
 """Orchestrator agent that coordinates all sub-agents."""
 
-from google.adk.agents import Agent, ParallelAgent, SequentialAgent, AgentTool
+from google.adk.agents import LlmAgent, ParallelAgent, SequentialAgent
 from google.adk.models.google_llm import Gemini
 from agents.news_agent import create_news_agent
 from agents.market_agent import create_market_agent
@@ -17,17 +17,37 @@ from config.settings import (
 )
 
 
-def create_orchestrator_agent() -> Agent:
+def create_orchestrator_agent() -> SequentialAgent:
     """Create the orchestrator agent that coordinates all sub-agents.
 
     Returns:
-        Configured Agent that orchestrates the research workflow
+        Configured SequentialAgent that orchestrates the research workflow
     """
     retry_config = types.HttpRetryOptions(
         attempts=MAX_RETRY_ATTEMPTS,
         exp_base=RETRY_EXP_BASE,
         initial_delay=RETRY_INITIAL_DELAY,
         http_status_codes=RETRY_HTTP_STATUS_CODES,
+    )
+
+    # Create query understanding agent
+    query_agent = LlmAgent(
+        name="QueryAgent",
+        model=Gemini(model=DEFAULT_MODEL, retry_options=retry_config),
+        instruction="""You are a query understanding agent for a financial research system.
+
+Your role:
+1. Understand the user's query (e.g., "Compare Tesla and Ford" or "Research NVDA")
+2. Extract ticker symbols from the query
+3. Determine if this is a single-ticker or multi-ticker request
+4. Pass the ticker information clearly to the next agents in the pipeline
+
+Output format: Provide a clear summary with:
+- Extracted ticker symbols
+- Whether this is a single or multi-ticker request
+- Any specific requirements mentioned (e.g., "show trends", "valuation", etc.)
+""",
+        output_key="query_analysis",
     )
 
     # Create specialized agents
@@ -43,37 +63,12 @@ def create_orchestrator_agent() -> Agent:
         sub_agents=[news_agent, market_agent, valuation_agent],
     )
 
-    # Create sequential pipeline: Parallel Research → Comparison → Report
-    # Comparison agent only runs if multiple tickers are provided
+    # Create sequential pipeline: Query → Parallel Research → Comparison → Report
+    # Comparison agent will process results when multiple tickers are detected
     sequential_pipeline = SequentialAgent(
         name="ResearchPipeline",
-        sub_agents=[parallel_research_team, comparison_agent, report_agent],
+        sub_agents=[query_agent, parallel_research_team, comparison_agent, report_agent],
     )
 
-    # Root orchestrator agent
-    orchestrator = Agent(
-        name="OrchestratorAgent",
-        model=Gemini(model=DEFAULT_MODEL, retry_options=retry_config),
-        instruction="""You are the orchestrator for a financial research system.
-
-Your role:
-1. Understand the user's query (e.g., "Compare Tesla and Ford" or "Research NVDA")
-2. Extract ticker symbols from the query
-3. Determine if this is a single-ticker or multi-ticker request
-4. Delegate to the ResearchPipeline which will:
-   - Run News, Market, and Valuation analysis in parallel
-   - Compare tickers if multiple are provided
-   - Generate a final research report
-5. Present the final report to the user in a clear, professional format
-
-Workflow:
-- For single ticker: ResearchPipeline → Final Report
-- For multiple tickers: ResearchPipeline (includes comparison) → Final Report
-
-Always provide clear, actionable financial research insights.
-""",
-        tools=[AgentTool(sequential_pipeline)],
-    )
-
-    return orchestrator
+    return sequential_pipeline
 

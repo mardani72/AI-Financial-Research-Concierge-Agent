@@ -2,8 +2,7 @@
 
 from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
-from google.adk.tools import google_search, FunctionTool
-from tools.sentiment_tool import analyze_news_sentiment
+from google.adk.tools import google_search
 from google.genai import types
 from config.settings import (
     DEFAULT_MODEL,
@@ -34,19 +33,18 @@ def create_news_agent() -> LlmAgent:
 
 Your responsibilities:
 1. Use the google_search tool to find recent financial news articles about the given ticker(s)
-2. Use the analyze_news_sentiment tool to analyze the sentiment of the news articles
+2. Analyze the sentiment and tone of the retrieved news
 3. Extract key themes: regulation, earnings, risks, partnerships, product launches, etc.
 4. Provide a structured summary with:
    - Overall sentiment (positive/neutral/negative)
    - Key themes identified
    - Most important news items
-   - Sentiment score
+   - Sentiment score (0.0 to 1.0 where higher is more positive)
 
-Always check the status field in tool responses for errors. If errors occur, report them clearly.
+If tools are unavailable or return limited results, fall back to your general financial knowledge while clearly stating any limitations.
 """,
         tools=[
             google_search,
-            FunctionTool(analyze_news_sentiment),
         ],
         output_key="news_analysis",
     )

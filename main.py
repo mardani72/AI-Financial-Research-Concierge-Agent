@@ -4,12 +4,11 @@ import asyncio
 import os
 import sys
 from typing import Optional, Tuple
-from google.adk.agents import Agent
+from google.adk.agents import LlmAgent
 from google.adk.apps.app import App, EventsCompactionConfig
 from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
 from google.adk.memory import InMemoryMemoryService
-from google.adk.tools import preload_memory
 from google.genai import types
 from agents.orchestrator_agent import create_orchestrator_agent
 from memory.session_store import get_session_service
@@ -50,18 +49,11 @@ def setup_agent_system() -> Tuple[Runner, str]:
     # Create orchestrator agent
     orchestrator = create_orchestrator_agent()
 
-    # Add memory tool to orchestrator by extending its tools
-    orchestrator_with_memory = Agent(
-        name=orchestrator.name,
-        model=orchestrator.model,
-        instruction=orchestrator.instruction + "\n\nUse preload_memory tool to recall user preferences and past research requests.",
-        tools=list(orchestrator.tools) + [preload_memory] if orchestrator.tools else [preload_memory],
-    )
-
     # Create App with context compaction
+    # Note: Memory is handled automatically by the Runner's memory_service
     app = App(
         name=APP_NAME,
-        root_agent=orchestrator_with_memory,
+        root_agent=orchestrator,
         events_compaction_config=EventsCompactionConfig(
             compaction_interval=MEMORY_COMPACTION_INTERVAL,
             overlap_size=MEMORY_OVERLAP_SIZE,
@@ -123,16 +115,29 @@ async def run_query(
 
     # Run agent
     response_text = ""
-    async for event in runner.run_async(
-        user_id=user_id, session_id=session.id, new_message=query_content
-    ):
-        if event.is_final_response() and event.content and event.content.parts:
-            for part in event.content.parts:
-                if part.text:
-                    response_text += part.text
-                    print(part.text, end="", flush=True)
+    try:
+        async for event in runner.run_async(
+            user_id=user_id, session_id=session.id, new_message=query_content
+        ):
+            if event.is_final_response() and event.content and event.content.parts:
+                for part in event.content.parts:
+                    if part.text:
+                        response_text += part.text
+                        print(part.text, end="", flush=True)
 
-    print("\n")
+        print("\n")
+    except ExceptionGroup as eg:
+        print(f"\n\nError: TaskGroup exception occurred:")
+        for i, exc in enumerate(eg.exceptions):
+            print(f"  Exception {i+1}: {type(exc).__name__}: {exc}")
+            import traceback
+            traceback.print_exception(type(exc), exc, exc.__traceback__)
+        raise
+    except Exception as e:
+        print(f"\n\nError: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exception(type(e), e, e.__traceback__)
+        raise
 
     # Auto-save to memory
     try:
