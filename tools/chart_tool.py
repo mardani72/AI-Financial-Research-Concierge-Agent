@@ -48,18 +48,18 @@ def generate_price_chart(
         fig, ax = plt.subplots(figsize=(12, 6))
 
         if chart_type.lower() == "candlestick":
-            # Simple candlestick-like visualization
-            for i in range(len(hist)):
-                color = "green" if hist["Close"].iloc[i] >= hist["Open"].iloc[i] else "red"
+            # Simple candlestick-like visualization using actual dates on x-axis
+            for ts, row in hist.iterrows():
+                color = "green" if row["Close"] >= row["Open"] else "red"
                 ax.plot(
-                    [i, i],
-                    [hist["Low"].iloc[i], hist["High"].iloc[i]],
+                    [ts, ts],
+                    [row["Low"], row["High"]],
                     color=color,
                     linewidth=1,
                 )
                 ax.plot(
-                    [i, i],
-                    [hist["Open"].iloc[i], hist["Close"].iloc[i]],
+                    [ts, ts],
+                    [row["Open"], row["Close"]],
                     color=color,
                     linewidth=3,
                 )
