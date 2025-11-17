@@ -30,6 +30,7 @@ models/
 weights/
 checkpoints/
 project_resources/
+project_overview.md
 
 # OS files
 .DS_Store
