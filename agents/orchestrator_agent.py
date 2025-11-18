@@ -21,7 +21,7 @@ def create_orchestrator_agent() -> SequentialAgent:
     """Create the orchestrator agent that coordinates all sub-agents.
 
     Returns:
-        Configured SequentialAgent that orchestrates the research workflow
+        Configured SequentialAgent that orchestrates the research workflow.
     """
     retry_config = types.HttpRetryOptions(
         attempts=MAX_RETRY_ATTEMPTS,
@@ -63,12 +63,16 @@ Output format: Provide a clear summary with:
         sub_agents=[news_agent, market_agent, valuation_agent],
     )
 
-    # Create sequential pipeline: Query → Parallel Research → Comparison → Report
+    # Create sequential pipeline: Query -> Parallel Research -> Comparison -> Report
     # Comparison agent will process results when multiple tickers are detected
-    sequential_pipeline = SequentialAgent(
-        name="ResearchPipeline",
-        sub_agents=[query_agent, parallel_research_team, comparison_agent, report_agent],
+    orchestrator_agent = SequentialAgent(
+        name="OrchestratorAgent",
+        sub_agents=[
+            query_agent,
+            parallel_research_team,
+            comparison_agent,
+            report_agent,
+        ],
     )
 
-    return sequential_pipeline
-
+    return orchestrator_agent

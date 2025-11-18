@@ -148,15 +148,27 @@ async def run_query(
     return response_text
 
 
-async def interactive_mode(runner: Runner, app_name: str):
-    """Run in interactive CLI mode."""
+async def interactive_mode(
+    runner: Runner,
+    app_name: str,
+    initial_user_id: str = DEFAULT_USER_ID,
+    initial_session_id: Optional[str] = None,
+) -> None:
+    """Run in interactive CLI mode.
+
+    Args:
+        runner: Runner instance
+        app_name: Application name
+        initial_user_id: User identifier to use for the session
+        initial_session_id: Optional starting session ID
+    """
     print("\n" + "="*60)
     print("Financial Research Agent - Interactive Mode")
     print("="*60)
     print("Enter your queries (type 'exit' to quit, 'new' for new session)\n")
 
-    session_id = None
-    user_id = DEFAULT_USER_ID
+    session_id = initial_session_id
+    user_id = initial_user_id
 
     while True:
         try:
@@ -181,9 +193,23 @@ async def interactive_mode(runner: Runner, app_name: str):
             print(f"\nError: {e}\n")
 
 
-async def single_query_mode(runner: Runner, app_name: str, query: str):
-    """Run a single query."""
-    await run_query(runner, app_name, query)
+async def single_query_mode(
+    runner: Runner,
+    app_name: str,
+    query: str,
+    user_id: str = DEFAULT_USER_ID,
+    session_id: Optional[str] = None,
+) -> None:
+    """Run a single query.
+
+    Args:
+        runner: Runner instance
+        app_name: Application name
+        query: User query string
+        user_id: User identifier
+        session_id: Optional session ID (creates new if None)
+    """
+    await run_query(runner, app_name, query, user_id=user_id, session_id=session_id)
 
 
 def main():
@@ -217,9 +243,24 @@ def main():
 
     # Run query or interactive mode
     if args.query:
-        asyncio.run(single_query_mode(runner, app_name, args.query))
+        asyncio.run(
+            single_query_mode(
+                runner,
+                app_name,
+                args.query,
+                user_id=args.user_id,
+                session_id=args.session_id,
+            )
+        )
     else:
-        asyncio.run(interactive_mode(runner, app_name))
+        asyncio.run(
+            interactive_mode(
+                runner,
+                app_name,
+                initial_user_id=args.user_id,
+                initial_session_id=args.session_id,
+            )
+        )
 
 
 if __name__ == "__main__":

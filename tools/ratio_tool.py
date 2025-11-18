@@ -21,7 +21,11 @@ def calculate_valuation_metrics(ticker: str) -> Dict[str, Any]:
         stock = yf.Ticker(ticker)
         info = stock.info
 
-        if not info:
+        # yfinance may still return a non-empty info dict even when the
+        # symbol is invalid. In practice, valid tickers have core fields
+        # like regularMarketPrice populated. Treat missing core price
+        # information as an invalid/unknown ticker.
+        if not info or info.get("regularMarketPrice") is None:
             return {
                 "status": "error",
                 "error_message": f"No data found for ticker {ticker}",
